@@ -1,0 +1,1292 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Neon 51 - Visualizador</title>
+
+  <style>
+    :root{
+      --neon-green:#28a745; --neon-cyan:#17a2b8;
+      --dark-bg:#1a1a2e; --darker-bg:#0f0f1a;
+      --card-bg:#16213e; --text-light:#e2e8f0;
+      --danger:#e63946;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;font-family:'Segoe UI',system-ui,sans-serif;}
+    body{
+      background:linear-gradient(135deg,var(--darker-bg) 0%, var(--dark-bg) 100%);
+      color:var(--text-light); min-height:100vh; padding:20px; background-attachment:fixed;
+    }
+    .container{max-width:1200px;margin:0 auto;padding:20px;}
+    .header{text-align:center;margin-bottom:30px;padding:20px;background:linear-gradient(90deg,var(--neon-green) 0%, var(--neon-cyan) 100%);
+      -webkit-background-clip:text;background-clip:text;color:transparent;position:relative;}
+    .header::after{content:'';position:absolute;bottom:-10px;left:50%;transform:translateX(-50%);
+      width:200px;height:3px;background:linear-gradient(90deg,transparent,var(--neon-green),transparent);}
+    .header h1{font-size:2.8rem;font-weight:800;letter-spacing:1px;}
+    .header p{font-size:1.2rem;opacity:.9;margin-top:10px;}
+
+    .controls{
+      background:var(--card-bg);border-radius:15px;padding:25px;margin-bottom:30px;
+      box-shadow:0 10px 30px rgba(0,0,0,.3);border:1px solid rgba(255,255,255,.05);
+    }
+
+    .control-group{
+      display:grid;
+      grid-template-columns: 1fr 1fr;
+      gap:24px;
+      align-items:start;
+      margin-bottom:25px;
+    }
+    @media (max-width: 900px){
+      .control-group{grid-template-columns:1fr;}
+    }
+
+    .control-item{display:flex;flex-direction:column;gap:10px;}
+    .control-item label{font-weight:800;color:var(--neon-cyan);font-size:.95rem;text-transform:uppercase;letter-spacing:.6px;}
+
+    .btn-upload{
+      background:linear-gradient(135deg,var(--neon-green) 0%, var(--neon-cyan) 100%);
+      color:#fff;border:none;padding:15px 18px;border-radius:12px;font-size:1.05rem;font-weight:900;
+      cursor:pointer;transition:all .25s ease;display:flex;align-items:center;justify-content:center;gap:10px;
+      box-shadow:0 5px 15px rgba(40,167,69,.25);
+      min-height:54px;
+    }
+    .btn-upload:hover{transform:translateY(-2px);box-shadow:0 8px 25px rgba(40,167,69,.35);}
+    .btn-upload svg{width:20px;height:20px;}
+
+    .btn-control{
+      background:rgba(255,255,255,.08);color:var(--text-light);border:1px solid rgba(255,255,255,.14);
+      padding:10px 14px;border-radius:12px;cursor:pointer;transition:all .18s ease;
+      display:flex;align-items:center;justify-content:center;gap:8px;font-weight:900;user-select:none;
+      min-height:44px;
+    }
+    .btn-control:hover{background:rgba(40,167,69,.16);border-color:rgba(40,167,69,.55);}
+    .btn-control.primary{background:linear-gradient(135deg,var(--neon-green) 0%, var(--neon-cyan) 100%);border:none;color:#fff;font-weight:950;}
+    .btn-control.danger{background:rgba(230,57,70,.14);border-color:rgba(230,57,70,.42);}
+    .btn-control.danger:hover{background:rgba(230,57,70,.22);border-color:rgba(230,57,70,.62);}
+    .btn-control.active{outline:2px solid rgba(23,162,184,.7); outline-offset:2px;}
+
+    .panel{
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      border-radius:12px;
+      padding:12px 14px;
+    }
+    .panel h4{font-size:.95rem;font-weight:950;color:rgba(255,255,255,.92);margin-bottom:6px;}
+    .panel p{font-size:.92rem;opacity:.9;line-height:1.35;}
+
+    .color-info{
+      background:rgba(255,255,255,.05);padding:14px;border-radius:12px;display:flex;align-items:center;gap:14px;
+      border:1px solid rgba(255,255,255,.08);
+    }
+    .color-preview{width:38px;height:38px;border-radius:50%;border:2px solid rgba(255,255,255,.5);box-shadow:0 0 15px rgba(0,0,0,.45);}
+    .color-value{font-size:1.05rem;font-weight:950;color:var(--neon-cyan);}
+
+    .neon-color-grid{display:grid;grid-template-columns: 1fr;gap:10px;margin-top:6px;}
+    .row-2{display:grid;grid-template-columns: 1fr auto;gap:10px;align-items:stretch;}
+    .row-actions{display:grid;grid-template-columns: repeat(4, minmax(0, 1fr));gap:10px;}
+    @media (max-width: 900px){ .row-actions{grid-template-columns: repeat(2, minmax(0, 1fr));} }
+
+    .color-inline{
+      display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);
+      padding:10px;border-radius:12px;min-height:44px;
+    }
+    input[type="color"]{
+      width:56px;height:44px;border:none;border-radius:10px;overflow:hidden;cursor:pointer;background:transparent;
+    }
+
+    .hint{
+      margin-top:6px;
+      background:rgba(255,255,255,.05);
+      border:1px solid rgba(255,255,255,.08);
+      padding:12px 14px;
+      border-radius:12px;
+      font-size:.92rem;
+      opacity:.95;
+      line-height:1.35;
+    }
+    .kbd{display:inline-block;padding:2px 6px;border-radius:8px;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.12);font-weight:950;}
+
+    .background-selector-container{margin-top:20px;}
+    .background-selector-label{font-weight:800;color:var(--neon-cyan);font-size:.95rem;text-transform:uppercase;letter-spacing:.6px;margin-bottom:12px;display:block;}
+    .background-selector{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:15px;margin-top:10px;}
+    .bg-option{background:rgba(255,255,255,.05);border-radius:12px;overflow:hidden;cursor:pointer;transition:all .2s ease;border:2px solid transparent;height:140px;display:flex;flex-direction:column;}
+    .bg-option:hover{transform:translateY(-2px);box-shadow:0 5px 15px rgba(0,0,0,.28);border-color:rgba(255,255,255,.2);}
+    .bg-option.selected{border-color:var(--neon-green);box-shadow:0 0 18px rgba(40,167,69,.45);transform:translateY(-2px);}
+    .bg-thumbnail{height:100px;width:100%;background-size:cover;background-position:center;background-repeat:no-repeat;}
+    .bg-label{padding:10px;text-align:center;font-weight:900;font-size:.85rem;background:rgba(0,0,0,.5);flex:1;display:flex;align-items:center;justify-content:center;}
+
+    .effects-controls{display:flex;flex-direction:column;gap:16px;margin-top:20px;}
+    .effects-row{display:grid;gap:20px;align-items:end;}
+    .neon-row{grid-template-columns: repeat(4, minmax(180px, 1fr));}
+    .position-row{grid-template-columns: repeat(4, minmax(180px, 1fr));}
+    @media (max-width: 1100px){
+      .neon-row{ grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+      .position-row{ grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+    }
+    @media (max-width: 600px){
+      .neon-row{ grid-template-columns: 1fr; }
+      .position-row{ grid-template-columns: 1fr; }
+    }
+
+    .slider-container{display:flex;flex-direction:column;gap:10px;}
+    .slider-label{display:flex;justify-content:space-between;align-items:center;font-weight:950;}
+    .slider-label span{color:var(--neon-green);font-weight:950;}
+    input[type="range"]{width:100%;height:8px;border-radius:4px;background:rgba(255,255,255,.1);outline:none;-webkit-appearance:none;}
+    input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:20px;height:20px;border-radius:50%;background:var(--neon-green);cursor:pointer;box-shadow:0 0 10px rgba(40,167,69,.8);}
+
+    .visualizer-container{
+      background:var(--card-bg);border-radius:15px;padding:20px;margin-bottom:30px;
+      box-shadow:0 10px 30px rgba(0,0,0,.3);display:flex;flex-direction:column;
+    }
+    .visualizer-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid rgba(255,255,255,.1);}
+    .visualizer-title{font-size:1.4rem;font-weight:950;color:var(--neon-green);}
+    .visualizer-controls{display:flex;gap:10px;flex-wrap:wrap;}
+
+    #visualizerCanvas{
+      border-radius:12px;position:relative;overflow:hidden;border:1px solid rgba(255,255,255,.1);
+      width:100%;aspect-ratio:1/1;max-width:800px;margin:0 auto;display:flex;align-items:center;justify-content:center;
+      background-color: var(--darker-bg);
+      background-image: none;
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      touch-action:none;
+      user-select:none;
+      cursor:grab;
+    }
+    #visualizerCanvas.dragging{cursor:grabbing;}
+
+    #svgContainer{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;}
+    #svgPreview{
+      width:75%;
+      height:75%;
+      display:flex;
+      align-items:center;
+      justify-content:center;
+
+      --tx: 0px;
+      --ty: 0px;
+      --s: 1;
+
+      transform: translate(var(--tx), var(--ty)) scale(var(--s));
+      transform-origin: center center;
+    }
+    #svgPreview svg{max-width:100%;max-height:100%;}
+
+    .empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;color:rgba(255,255,255,.5);text-align:center;padding:40px;}
+    .empty-state svg{width:80px;height:80px;margin-bottom:20px;opacity:.3;}
+    .empty-state h3{font-size:1.5rem;margin-bottom:10px;color:var(--text-light);}
+
+    .status-message{
+      position:fixed;top:20px;right:20px;background:var(--neon-green);color:#fff;padding:15px 25px;border-radius:10px;
+      box-shadow:0 5px 15px rgba(0,0,0,.3);transform:translateX(150%);transition:transform .3s ease;z-index:1000;font-weight:950;
+    }
+    .status-message.show{transform:translateX(0);}
+    .status-message.error{background:var(--danger);}
+  </style>
+</head>
+
+<body>
+<div class="container">
+  <header class="header">
+    <h1>NEON 51</h1>
+    <p>Visualizador de Bocetos Neon</p>
+  </header>
+
+  <div class="controls">
+    <div class="control-group">
+      <div class="control-item">
+        <label>SUBE TU DISEÑO SVG</label>
+        <button id="svgUpload" class="btn-upload" type="button">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path d="M19,13H13V19H11V13H5V11H11V5H13V11H19V13Z"/></svg>
+          Seleccionar archivo SVG
+        </button>
+        <input type="file" id="svgFile" accept=".svg" style="display:none;">
+
+        <div class="panel">
+          <h4>Tip rápido</h4>
+          <p>
+            <b>Modo normal:</b> arrastra el neón para colocarlo.<br>
+            <b>Modo edición:</b> click para seleccionar trazos y <span class="kbd">Shift</span>+click para multi.
+          </p>
+        </div>
+      </div>
+
+      <div class="control-item">
+        <label>COLOR DEL NEÓN</label>
+
+        <div class="color-info" id="colorInfo" style="display:none;">
+          <div class="color-preview" id="originalColorPreview"></div>
+          <div>
+            <div style="opacity:.85">Color detectado en el SVG:</div>
+            <div class="color-value" id="originalColorValue">-</div>
+          </div>
+        </div>
+
+        <div class="neon-color-grid">
+          <div class="row-2">
+            <button id="useSvgColorBtn" class="btn-control" type="button">Usar color del SVG</button>
+
+            <div class="color-inline">
+              <input id="neonColorPicker" type="color" value="#ff0000" title="Color del neón" />
+              <button id="useCustomColorBtn" class="btn-control primary" type="button">Color personalizado</button>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <button id="paintSelectionBtn" class="btn-control" type="button">Pintar selección</button>
+            <button id="applyToAllBtn" class="btn-control" type="button">Aplicar a todo</button>
+            <button id="toggleEditBtn" class="btn-control" type="button">Modo edición</button>
+            <button id="clearSelectionBtn" class="btn-control danger" type="button">Quitar selección</button>
+          </div>
+        </div>
+
+        <div class="hint">
+          <b>Selector de color:</b> define el color “custom” y el color con el que pintas selección.
+          Prioridad: <b>selección</b> &gt; <b>custom</b> &gt; <b>SVG</b>.
+        </div>
+      </div>
+    </div>
+
+    <div class="background-selector-container">
+      <label class="background-selector-label">SELECCIONA UN FONDO</label>
+      <div style="display:flex; gap:10px; align-items:center; margin:10px 0 5px; flex-wrap:wrap;">
+        <button id="bgUploadBtn" class="btn-control primary" type="button">Subir foto de fondo</button>
+        <input type="file" id="bgFile" accept="image/*" style="display:none;">
+        <button id="bgClearBtn" class="btn-control" type="button">Quitar foto</button>
+      </div>
+      <div class="background-selector" id="backgroundSelector"></div>
+    </div>
+
+    <div class="effects-controls">
+      <div class="effects-row neon-row">
+        <div class="slider-container">
+          <div class="slider-label"><span>Intensidad del Brillo</span><span id="glowValue">2.2</span></div>
+          <input type="range" id="glowSlider" min="0.8" max="6.0" value="2.2" step="0.1">
+        </div>
+
+        <div class="slider-container">
+          <div class="slider-label"><span>Opacidad del Neón</span><span id="opacityValue">0.90</span></div>
+          <input type="range" id="opacitySlider" min="0.1" max="1.0" value="0.9" step="0.05">
+        </div>
+
+        <div class="slider-container">
+          <div class="slider-label"><span>Desenfoque del Resplandor</span><span id="blurValue">28px</span></div>
+          <input type="range" id="blurSlider" min="2" max="80" value="28" step="1">
+        </div>
+
+        <div class="slider-container">
+          <div class="slider-label"><span>Atajos teclado</span><span style="color:var(--neon-cyan);font-weight:950;">←→↑↓</span></div>
+          <div style="opacity:.85;font-size:.9rem;line-height:1.25;">
+            Shift = paso grande<br>↑ sube / ↓ baja
+          </div>
+        </div>
+      </div>
+
+      <div class="effects-row position-row">
+        <div class="slider-container">
+          <div class="slider-label"><span>Posición X</span><span id="posXValue">0px</span></div>
+          <input type="range" id="posXSlider" min="-300" max="300" value="0" step="1">
+        </div>
+
+        <div class="slider-container">
+          <div class="slider-label"><span>Posición Y</span><span id="posYValue">0px</span></div>
+          <input type="range" id="posYSlider" min="-300" max="300" value="0" step="1">
+        </div>
+
+        <div class="slider-container">
+          <div class="slider-label"><span>Tamaño del Neón</span><span id="scaleValue">1.00x</span></div>
+          <input type="range" id="scaleSlider" min="0.4" max="1.6" value="1.0" step="0.01">
+        </div>
+
+        <div class="slider-container">
+          <button id="resetViewBtn" class="btn-control" type="button">Restaurar encuadre</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="visualizer-container">
+    <div class="visualizer-header">
+      <div class="visualizer-title">VISTA PREVIA</div>
+      <div class="visualizer-controls">
+        <button id="downloadBtn" class="btn-control primary" type="button">Descargar imagen</button>
+        <button id="resetBtn" class="btn-control" type="button">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2Z"/></svg>
+          Reiniciar
+        </button>
+      </div>
+    </div>
+
+    <div id="visualizerCanvas">
+      <div id="svgContainer">
+        <div id="svgPreview">
+          <div class="empty-state">
+            <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13,9H18.5L13,3.5V9M6,2H14L20,8V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V4C4,2.89 4.89,2 6,2Z"/></svg>
+            <h3>Sube un SVG para comenzar</h3>
+            <p>Se mostrará como neón con efecto glow</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="statusMessage" class="status-message"></div>
+</div>
+
+<script>
+  let currentSVG = null;
+  let neonLayer = null;
+  let dominantColor = "#4b6cff";
+  let currentBackground = "empty";
+
+  let colorMode = "custom";
+  let customNeonColor = "#ff0000";
+  let customBgURL = null;
+
+  let editMode = false;
+  const selectedIds = new Set();
+  let eidCounter = 1;
+
+  const backgrounds = [
+    { id:'empty', name:'Fondo Vacío', thumbnail:'', url:'', color:'#0f0f1a' },
+    { id:'modern-wall', name:'Salón 1', thumbnail:'https://cdn.shopify.com/s/files/1/0562/7772/9332/files/fondo_rack2.jpg?v=1745600555', url:'https://cdn.shopify.com/s/files/1/0562/7772/9332/files/fondo_rack2.jpg?v=1745600555' },
+    { id:'brick-wall', name:'Salón 2', thumbnail:'https://cdn.shopify.com/s/files/1/0562/7772/9332/files/fondo_sofa.jpg?v=1745600553', url:'https://cdn.shopify.com/s/files/1/0562/7772/9332/files/fondo_sofa.jpg?v=1745600553' },
+    { id:'wood-wall', name:'Salón 3', thumbnail:'https://cdn.shopify.com/s/files/1/0562/7772/9332/files/fondo_rack1.jpg?v=1745600364', url:'https://cdn.shopify.com/s/files/1/0562/7772/9332/files/fondo_rack1.jpg?v=1745600364' },
+    { id:'concrete-wall', name:'Estudio 1', thumbnail:'https://cdn.shopify.com/s/files/1/0562/7772/9332/files/fondo_oficina.jpg?v=1745600550', url:'https://cdn.shopify.com/s/files/1/0562/7772/9332/files/fondo_oficina.jpg?v=1745600550' },
+  ];
+
+  function showStatus(msg, type="success") {
+    const el = document.getElementById("statusMessage");
+    el.textContent = msg;
+    el.className = `status-message ${type}`;
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 2200);
+  }
+
+  function readFileAsText(file) {
+    return new Promise((resolve, reject) => {
+      const r = new FileReader();
+      r.onload = e => resolve(e.target.result);
+      r.onerror = reject;
+      r.readAsText(file);
+    });
+  }
+
+  function isDrawableTag(tag) {
+    return ["path","circle","ellipse","rect","polygon","polyline","line","text"].includes(tag);
+  }
+
+  function getDominantColorFromSVG(svgEl) {
+    const els = svgEl.querySelectorAll("[stroke]:not([stroke='none']):not([stroke^='url']), [fill]:not([fill='none']):not([fill^='url'])");
+    const count = new Map();
+    els.forEach(el => {
+      const s = el.getAttribute("stroke");
+      const f = el.getAttribute("fill");
+      const c = (s && s !== "none" && !s.startsWith("url")) ? s : (f && f !== "none" && !f.startsWith("url") ? f : null);
+      if (!c) return;
+      const key = c.trim();
+      count.set(key, (count.get(key) || 0) + 1);
+    });
+    let best = "#4b6cff", bestN = 0;
+    for (const [k,n] of count.entries()) if (n > bestN) { best = k; bestN = n; }
+    return best;
+  }
+
+  function toHexSafe(color) {
+    try {
+      const ctx = document.createElement("canvas").getContext("2d");
+      ctx.fillStyle = "#000";
+      ctx.fillStyle = color;
+      const computed = ctx.fillStyle;
+      if (computed.startsWith("#")) return computed;
+      const m = computed.match(/^rgb\((\d+),\s*(\d+),\s*(\d+)\)$/i);
+      if (!m) return null;
+      const r = (+m[1]).toString(16).padStart(2,"0");
+      const g = (+m[2]).toString(16).padStart(2,"0");
+      const b = (+m[3]).toString(16).padStart(2,"0");
+      return `#${r}${g}${b}`;
+    } catch { return null; }
+  }
+
+  function convertLineToPath(lineEl) {
+    const x1 = lineEl.getAttribute("x1"), y1 = lineEl.getAttribute("y1");
+    const x2 = lineEl.getAttribute("x2"), y2 = lineEl.getAttribute("y2");
+    const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    p.setAttribute("d", `M ${x1} ${y1} L ${x2} ${y2}`);
+    for (const attr of Array.from(lineEl.attributes)) {
+      const n = attr.name;
+      if (["x1","y1","x2","y2"].includes(n)) continue;
+      p.setAttribute(n, attr.value);
+    }
+    if (lineEl.style?.cssText) p.style.cssText = lineEl.style.cssText;
+    lineEl.parentNode.replaceChild(p, lineEl);
+    return p;
+  }
+
+  function normalizeSVGStructure(svgEl) {
+    Array.from(svgEl.querySelectorAll("line")).forEach(convertLineToPath);
+
+    if (!svgEl.getAttribute("viewBox")) {
+      const w = parseFloat(svgEl.getAttribute("width")) || 100;
+      const h = parseFloat(svgEl.getAttribute("height")) || 100;
+      svgEl.setAttribute("viewBox", `0 0 ${w} ${h}`);
+    }
+
+    let layer = svgEl.querySelector("#neonLayer");
+    if (!layer) {
+      layer = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      layer.setAttribute("id", "neonLayer");
+
+      const children = Array.from(svgEl.childNodes);
+      for (const node of children) {
+        if (node.nodeType === 1 && node.tagName.toLowerCase() === "defs") continue;
+        if (node.parentNode === svgEl) layer.appendChild(node);
+      }
+      svgEl.appendChild(layer);
+    }
+    return layer;
+  }
+
+  function ensureNeonFilters(svgEl) {
+    let defs = svgEl.querySelector("defs");
+    if (!defs) {
+      defs = document.createElementNS("http://www.w3.org/2000/svg", "defs");
+      svgEl.insertBefore(defs, svgEl.firstChild);
+    }
+
+    if (!svgEl.querySelector("#neonCoreFilter")) {
+      const f = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+      f.setAttribute("id", "neonCoreFilter");
+      f.setAttribute("x", "-120%"); f.setAttribute("y", "-120%");
+      f.setAttribute("width", "340%"); f.setAttribute("height", "340%");
+      f.setAttribute("color-interpolation-filters", "sRGB");
+
+      const comp = document.createElementNS("http://www.w3.org/2000/svg", "feComponentTransfer");
+      comp.setAttribute("in", "SourceGraphic");
+      comp.setAttribute("result", "bright");
+
+      const fr = document.createElementNS("http://www.w3.org/2000/svg", "feFuncR");
+      const fg = document.createElementNS("http://www.w3.org/2000/svg", "feFuncG");
+      const fb = document.createElementNS("http://www.w3.org/2000/svg", "feFuncB");
+      [fr,fg,fb].forEach(fn => { fn.setAttribute("type","linear"); fn.setAttribute("slope","1.4"); });
+      comp.appendChild(fr); comp.appendChild(fg); comp.appendChild(fb);
+
+      const blur = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+      blur.setAttribute("in", "bright");
+      blur.setAttribute("stdDeviation", "0.8");
+      blur.setAttribute("result", "soft");
+
+      const merge = document.createElementNS("http://www.w3.org/2000/svg", "feMerge");
+      const m1 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode"); m1.setAttribute("in","soft");
+      const m2 = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode"); m2.setAttribute("in","bright");
+      merge.appendChild(m1); merge.appendChild(m2);
+
+      f.appendChild(comp); f.appendChild(blur); f.appendChild(merge);
+      defs.appendChild(f);
+    }
+
+    if (!svgEl.querySelector("#neonGlowFilter")) {
+      const f = document.createElementNS("http://www.w3.org/2000/svg", "filter");
+      f.setAttribute("id", "neonGlowFilter");
+      f.setAttribute("x", "-400%"); f.setAttribute("y", "-400%");
+      f.setAttribute("width", "900%"); f.setAttribute("height", "900%");
+      f.setAttribute("color-interpolation-filters", "sRGB");
+
+      const a = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+      a.setAttribute("in", "SourceAlpha"); a.setAttribute("stdDeviation", "10"); a.setAttribute("result", "a1");
+
+      const b = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+      b.setAttribute("in", "SourceAlpha"); b.setAttribute("stdDeviation", "22"); b.setAttribute("result", "a2");
+
+      const c = document.createElementNS("http://www.w3.org/2000/svg", "feGaussianBlur");
+      c.setAttribute("in", "SourceAlpha"); c.setAttribute("stdDeviation", "40"); c.setAttribute("result", "a3");
+
+      const boost = document.createElementNS("http://www.w3.org/2000/svg", "feColorMatrix");
+      boost.setAttribute("in", "a3");
+      boost.setAttribute("type", "matrix");
+      boost.setAttribute("values", `
+        1 0 0 0 0
+        0 1 0 0 0
+        0 0 1 0 0
+        0 0 0 2.2 0
+      `);
+      boost.setAttribute("result", "a3b");
+
+      const flood = document.createElementNS("http://www.w3.org/2000/svg", "feFlood");
+      flood.setAttribute("flood-color", "#ff0000");
+      flood.setAttribute("flood-opacity", "1");
+      flood.setAttribute("result", "col");
+
+      const tint = (inAlpha, outName) => {
+        const comp = document.createElementNS("http://www.w3.org/2000/svg", "feComposite");
+        comp.setAttribute("in", "col");
+        comp.setAttribute("in2", inAlpha);
+        comp.setAttribute("operator", "in");
+        comp.setAttribute("result", outName);
+        return comp;
+      };
+
+      const t1 = tint("a1", "h1");
+      const t2 = tint("a2", "h2");
+      const t3 = tint("a3b", "h3");
+
+      const merge = document.createElementNS("http://www.w3.org/2000/svg", "feMerge");
+      ["h3","h2","h1","SourceGraphic"].forEach(n => {
+        const node = document.createElementNS("http://www.w3.org/2000/svg", "feMergeNode");
+        node.setAttribute("in", n);
+        merge.appendChild(node);
+      });
+
+      f.appendChild(a); f.appendChild(b); f.appendChild(c);
+      f.appendChild(boost);
+      f.appendChild(flood);
+      f.appendChild(t1); f.appendChild(t2); f.appendChild(t3);
+      f.appendChild(merge);
+      defs.appendChild(f);
+    }
+  }
+
+  function computeStrokeUnitsForTargetPx(svgEl, targetPx) {
+    const vb = svgEl.viewBox?.baseVal;
+    if (!vb || !vb.width) return 3;
+    const rect = svgEl.getBoundingClientRect();
+    if (!rect.width) return 3;
+    const scale = rect.width / vb.width;
+    if (!Number.isFinite(scale) || scale <= 0) return 3;
+    return targetPx / scale;
+  }
+
+  function assignElementIds(layerEl) {
+    layerEl.querySelectorAll("*").forEach(el => {
+      if (!el.tagName) return;
+      const tag = el.tagName.toLowerCase();
+      if (!isDrawableTag(tag)) return;
+      if (!el.dataset.eid) el.dataset.eid = String(eidCounter++);
+    });
+  }
+
+  function wipePaint(el) {
+    el.removeAttribute("fill");
+    el.removeAttribute("stroke");
+    el.removeAttribute("opacity");
+    el.removeAttribute("fill-opacity");
+    el.removeAttribute("stroke-opacity");
+    if (el.getAttribute("style")) {
+      el.style.removeProperty("fill");
+      el.style.removeProperty("stroke");
+      el.style.removeProperty("opacity");
+      el.style.removeProperty("filter");
+      el.style.removeProperty("mix-blend-mode");
+    }
+  }
+
+  function activeStrokeForElement(el, fallback) {
+    const override = el?.dataset?.overrideStroke;
+    if (override) return override;
+    if (colorMode === "custom") return customNeonColor;
+    return fallback || dominantColor || "#4b6cff";
+  }
+
+  function buildHitLayerFromCore(coreLayer, strokeUnits) {
+    let hit = coreLayer.ownerSVGElement.querySelector("#hitLayer");
+    if (hit) hit.remove();
+
+    hit = coreLayer.cloneNode(true);
+    hit.setAttribute("id", "hitLayer");
+    hit.removeAttribute("filter");
+
+    hit.querySelectorAll("*").forEach(el => {
+      if (!el.tagName) return;
+      const tag = el.tagName.toLowerCase();
+      if (!isDrawableTag(tag)) return;
+
+      el.setAttribute("fill", "none");
+      el.setAttribute("stroke", "#000");
+      el.setAttribute("stroke-opacity", "0");
+      el.setAttribute("stroke-width", String(strokeUnits * 8));
+      el.style.pointerEvents = "stroke";
+    });
+
+    hit.style.pointerEvents = editMode ? "auto" : "none";
+    hit.style.opacity = "1";
+    return hit;
+  }
+
+  function updateSelectionVisual(coreLayer) {
+    if (!coreLayer) return;
+
+    coreLayer.querySelectorAll("[data-selected='1']").forEach(el => el.removeAttribute("data-selected"));
+
+    coreLayer.querySelectorAll("*").forEach(el => {
+      const id = el?.dataset?.eid;
+      if (!id) return;
+      if (selectedIds.has(id)) el.setAttribute("data-selected","1");
+    });
+
+    coreLayer.querySelectorAll("[data-selected='1']").forEach(el => {
+      el.style.filter = "drop-shadow(0 0 6px rgba(23,162,184,.85)) drop-shadow(0 0 14px rgba(23,162,184,.35))";
+    });
+    coreLayer.querySelectorAll("*:not([data-selected='1'])").forEach(el => {
+      if (el?.style) el.style.filter = "";
+    });
+  }
+
+  function applyNeonStyles(svgEl, layerEl) {
+    const glow = parseFloat(document.getElementById("glowSlider").value);
+    const opacity = parseFloat(document.getElementById("opacitySlider").value);
+    const blur = parseFloat(document.getElementById("blurSlider").value);
+
+    document.getElementById("glowValue").textContent = glow.toFixed(1);
+    document.getElementById("opacityValue").textContent = opacity.toFixed(2);
+    document.getElementById("blurValue").textContent = `${Math.round(blur)}px`;
+
+    const coreF = svgEl.querySelector("#neonCoreFilter");
+    const glowF = svgEl.querySelector("#neonGlowFilter");
+
+    if (coreF) {
+      const feComp = coreF.querySelector("feComponentTransfer");
+      if (feComp) {
+        const fns = feComp.querySelectorAll("feFuncR, feFuncG, feFuncB");
+        const slope = Math.max(1.0, 1.1 + glow * 0.35);
+        fns.forEach(fn => fn.setAttribute("slope", slope.toFixed(2)));
+      }
+    }
+
+    if (glowF) {
+      const blurs = glowF.querySelectorAll("feGaussianBlur");
+      const near = Math.max(2, blur * 0.40);
+      const mid  = Math.max(4, blur * 0.85);
+      const far  = Math.max(6, blur * 1.35);
+
+      if (blurs[0]) blurs[0].setAttribute("stdDeviation", near.toFixed(1));
+      if (blurs[1]) blurs[1].setAttribute("stdDeviation", mid.toFixed(1));
+      if (blurs[2]) blurs[2].setAttribute("stdDeviation", far.toFixed(1));
+
+      const boost = glowF.querySelector("feColorMatrix");
+      const a = 1.4 + (glow - 0.8) * 0.55;
+      if (boost) {
+        boost.setAttribute("values", `
+          1 0 0 0 0
+          0 1 0 0 0
+          0 0 1 0 0
+          0 0 0 ${a.toFixed(2)} 0
+        `);
+      }
+
+      const flood = glowF.querySelector("feFlood");
+      const floodColor = (colorMode === "custom") ? customNeonColor : (dominantColor || customNeonColor);
+      if (flood) flood.setAttribute("flood-color", floodColor);
+    }
+
+    const tubePx = 3.0;
+    const strokeUnits = computeStrokeUnitsForTargetPx(svgEl, tubePx);
+
+    assignElementIds(layerEl);
+
+    layerEl.querySelectorAll("*").forEach(el => {
+      if (!el.tagName) return;
+      const tag = el.tagName.toLowerCase();
+      if (!isDrawableTag(tag)) return;
+      if (el.getAttribute("display") === "none" || el.getAttribute("visibility") === "hidden") return;
+
+      const origStroke = el.getAttribute("stroke");
+      const origFill = el.getAttribute("fill");
+      const fallback =
+        (origStroke && origStroke !== "none" && !origStroke.startsWith("url")) ? origStroke :
+        (origFill && origFill !== "none" && !origFill.startsWith("url")) ? origFill :
+        (dominantColor || "#4b6cff");
+
+      const stroke = activeStrokeForElement(el, fallback);
+
+      wipePaint(el);
+
+      el.setAttribute("fill", "none");
+      el.setAttribute("stroke-linecap", "round");
+      el.setAttribute("stroke-linejoin", "round");
+      el.setAttribute("stroke-width", String(strokeUnits));
+      el.setAttribute("stroke-opacity", String(opacity));
+      el.setAttribute("stroke", stroke);
+
+      el.style.setProperty("stroke", stroke, "important");
+      el.style.setProperty("fill", "none", "important");
+      el.style.pointerEvents = "none";
+    });
+
+    let stack = svgEl.querySelector("#neonStack");
+    if (!stack) {
+      stack = document.createElementNS("http://www.w3.org/2000/svg", "g");
+      stack.setAttribute("id", "neonStack");
+      layerEl.parentNode.insertBefore(stack, layerEl);
+      stack.appendChild(layerEl);
+    }
+
+    let coreLayer = svgEl.querySelector("#coreLayer");
+    if (!coreLayer) {
+      coreLayer = layerEl;
+      coreLayer.setAttribute("id", "coreLayer");
+    }
+
+    const oldGlow = svgEl.querySelector("#glowLayer");
+    const newGlow = coreLayer.cloneNode(true);
+    newGlow.setAttribute("id", "glowLayer");
+    if (!oldGlow) stack.insertBefore(newGlow, coreLayer);
+    else stack.replaceChild(newGlow, oldGlow);
+
+    const glowLayer = newGlow;
+
+    glowLayer.querySelectorAll("*").forEach(el => {
+      if (!el.tagName) return;
+      const tag = el.tagName.toLowerCase();
+      if (!isDrawableTag(tag)) return;
+      el.setAttribute("stroke-width", String(strokeUnits * 3.0));
+      el.setAttribute("stroke-opacity", String(Math.min(1, opacity * 0.55)));
+      el.style.pointerEvents = "none";
+    });
+
+    coreLayer.querySelectorAll("*").forEach(el => {
+      if (!el.tagName) return;
+      const tag = el.tagName.toLowerCase();
+      if (!isDrawableTag(tag)) return;
+      el.setAttribute("stroke-width", String(strokeUnits * 1.0));
+      el.setAttribute("stroke-opacity", String(opacity));
+      el.style.pointerEvents = "none";
+    });
+
+    glowLayer.setAttribute("filter", "url(#neonGlowFilter)");
+    coreLayer.setAttribute("filter", "url(#neonCoreFilter)");
+
+    const hitLayer = buildHitLayerFromCore(coreLayer, strokeUnits);
+    if (editMode) stack.appendChild(hitLayer);
+
+    updateSelectionVisual(coreLayer);
+  }
+
+  function applyViewTransform() {
+    const preview = document.getElementById("svgPreview");
+    if (!preview) return;
+
+    const x = parseInt(document.getElementById("posXSlider").value || 0, 10);
+    const y = parseInt(document.getElementById("posYSlider").value || 0, 10);
+    const s = parseFloat(document.getElementById("scaleSlider").value || 1);
+
+    document.getElementById("posXValue").textContent = `${x}px`;
+    document.getElementById("posYValue").textContent = `${y}px`;
+    document.getElementById("scaleValue").textContent = `${s.toFixed(2)}x`;
+
+    preview.style.setProperty("--tx", `${x}px`);
+    preview.style.setProperty("--ty", `${-y}px`);
+    preview.style.setProperty("--s", s);
+  }
+
+  function applyAll() {
+    if (!currentSVG || !neonLayer) return;
+    applyNeonStyles(currentSVG, neonLayer);
+    applyViewTransform();
+  }
+
+  function initBackgroundSelector() {
+    const container = document.getElementById("backgroundSelector");
+    container.innerHTML = "";
+
+    backgrounds.forEach(bg => {
+      const option = document.createElement("div");
+      option.className = "bg-option" + (bg.id === "empty" ? " selected" : "");
+      option.dataset.bgId = bg.id;
+
+      option.innerHTML = (bg.id === "empty")
+        ? `<div class="bg-thumbnail" style="background:${bg.color};display:flex;align-items:center;justify-content:center;">
+             <div style="color:rgba(255,255,255,0.5);font-size:2rem;">◼</div>
+           </div><div class="bg-label">${bg.name}</div>`
+        : `<div class="bg-thumbnail" style="background-image:url('${bg.thumbnail}')"></div>
+           <div class="bg-label">${bg.name}</div>`;
+
+      option.addEventListener("click", () => {
+        currentBackground = bg.id;
+        document.querySelectorAll(".bg-option").forEach(o => o.classList.remove("selected"));
+        option.classList.add("selected");
+        updateBackground();
+      });
+
+      container.appendChild(option);
+    });
+  }
+
+  function updateBackground() {
+    const canvas = document.getElementById("visualizerCanvas");
+    canvas.style.backgroundSize = "cover";
+    canvas.style.backgroundPosition = "center";
+    canvas.style.backgroundRepeat = "no-repeat";
+
+    if (currentBackground === "custom" && customBgURL) {
+      canvas.style.backgroundImage = `url('${customBgURL}')`;
+      canvas.style.backgroundColor = "rgba(15,15,26,0.1)";
+      return;
+    }
+
+    const bg = backgrounds.find(b => b.id === currentBackground);
+    if (!bg) return;
+
+    if (bg.id === "empty") {
+      canvas.style.backgroundImage = "none";
+      canvas.style.backgroundColor = bg.color || "#0f0f1a";
+    } else {
+      canvas.style.backgroundImage = `url('${bg.url}')`;
+      canvas.style.backgroundColor = "rgba(15,15,26,0.1)";
+    }
+  }
+
+  function clearCustomBackground() {
+    if (customBgURL) {
+      URL.revokeObjectURL(customBgURL);
+      customBgURL = null;
+    }
+    currentBackground = "empty";
+    document.querySelectorAll(".bg-option").forEach(o => o.classList.remove("selected"));
+    document.querySelector(`.bg-option[data-bg-id="empty"]`)?.classList.add("selected");
+    updateBackground();
+  }
+
+  async function handleSVGUpload(ev) {
+    const file = ev.target.files?.[0];
+    if (!file) return;
+
+    try {
+      const text = await readFileAsText(file);
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, "image/svg+xml");
+      const svg = doc.querySelector("svg");
+      if (!svg) throw new Error("No se encontró <svg> en el archivo.");
+
+      const preview = document.getElementById("svgPreview");
+      preview.innerHTML = "";
+
+      const imported = document.importNode(svg, true);
+      imported.setAttribute("width", "100%");
+      imported.setAttribute("height", "100%");
+      imported.setAttribute("preserveAspectRatio", "xMidYMid meet");
+      imported.setAttribute("xmlns", imported.getAttribute("xmlns") || "http://www.w3.org/2000/svg");
+      imported.setAttribute("xmlns:xlink", imported.getAttribute("xmlns:xlink") || "http://www.w3.org/1999/xlink");
+
+      dominantColor = getDominantColorFromSVG(imported);
+      document.getElementById("colorInfo").style.display = "flex";
+      document.getElementById("originalColorPreview").style.backgroundColor = dominantColor;
+      document.getElementById("originalColorValue").textContent = dominantColor;
+
+      const picker = document.getElementById("neonColorPicker");
+      const hex = toHexSafe(dominantColor);
+      if (hex && colorMode === "svg") picker.value = hex;
+
+      neonLayer = normalizeSVGStructure(imported);
+      ensureNeonFilters(imported);
+
+      preview.appendChild(imported);
+      currentSVG = imported;
+
+      selectedIds.clear();
+      requestAnimationFrame(() => applyAll());
+
+      ev.target.value = "";
+      showStatus("SVG cargado ✓", "success");
+    } catch (e) {
+      console.error(e);
+      showStatus("Error al cargar SVG: " + (e?.message || e), "error");
+    }
+  }
+
+  function clamp(v, min, max){ return Math.max(min, Math.min(max, v)); }
+
+  function setColorModeUI(mode) {
+    document.getElementById("useSvgColorBtn").classList.toggle("active", mode === "svg");
+    document.getElementById("useCustomColorBtn").classList.toggle("active", mode === "custom");
+  }
+
+  function setEditModeUI(on) {
+    const btn = document.getElementById("toggleEditBtn");
+    btn.classList.toggle("active", on);
+    btn.textContent = on ? "Edición activada" : "Modo edición";
+  }
+
+  function getCoreElementById(eid) {
+    if (!currentSVG) return null;
+    return currentSVG.querySelector(`#coreLayer [data-eid="${CSS.escape(eid)}"]`);
+  }
+
+  function paintSelection(color) {
+    if (!selectedIds.size) { showStatus("No hay selección", "error"); return; }
+    for (const id of selectedIds) {
+      const el = getCoreElementById(id);
+      if (el) el.dataset.overrideStroke = color;
+    }
+    applyAll();
+    showStatus("Selección pintada ✓", "success");
+  }
+
+  function applyToAll(color) {
+    if (!currentSVG || !neonLayer) return;
+    currentSVG.querySelectorAll("#coreLayer [data-eid]").forEach(el => { delete el.dataset.overrideStroke; });
+    selectedIds.clear();
+
+    colorMode = "custom";
+    customNeonColor = color;
+    setColorModeUI(colorMode);
+
+    applyAll();
+    showStatus("Aplicado a todo ✓", "success");
+  }
+
+  function clearSelection() {
+    selectedIds.clear();
+    applyAll();
+    showStatus("Selección quitada", "success");
+  }
+
+  function setupKeyboard() {
+    window.addEventListener("keydown", (e) => {
+      const tag = (document.activeElement?.tagName || "").toLowerCase();
+      if (tag === "input" || tag === "textarea" || document.activeElement?.isContentEditable) return;
+
+      const step = e.shiftKey ? 20 : 8;
+
+      const xEl = document.getElementById("posXSlider");
+      const yEl = document.getElementById("posYSlider");
+
+      if (!editMode) {
+        let handled = false;
+        if (e.key === "ArrowLeft") { xEl.value = clamp(+xEl.value - step, +xEl.min, +xEl.max); handled = true; }
+        if (e.key === "ArrowRight"){ xEl.value = clamp(+xEl.value + step, +xEl.min, +xEl.max); handled = true; }
+        if (e.key === "ArrowUp")   { yEl.value = clamp(+yEl.value + step, +yEl.min, +yEl.max); handled = true; }
+        if (e.key === "ArrowDown") { yEl.value = clamp(+yEl.value - step, +yEl.min, +yEl.max); handled = true; }
+        if (handled) { e.preventDefault(); applyViewTransform(); }
+      }
+    });
+  }
+
+  function setupPointer() {
+    const canvas = document.getElementById("visualizerCanvas");
+
+    let draggingNeon = false, sx=0, sy=0, baseX=0, baseY=0;
+    let draggingSel = false, selStartX=0, selStartY=0;
+    let baseTransforms = null;
+
+    const pxToSliderDelta = (dx, dy) => {
+      const s = parseFloat(document.getElementById("scaleSlider").value || 1);
+      return { dx: dx / s, dy: dy / s };
+    };
+
+    const getPt = (e) => ({ x: e.clientX, y: e.clientY });
+
+    const getElLocalTransform = (el) => {
+      const t = el.getAttribute("transform") || "";
+      const m = t.match(/translate\(\s*([-\d.]+)\s*[,\s]\s*([-\d.]+)\s*\)/i);
+      return { tx: m ? parseFloat(m[1]) : 0, ty: m ? parseFloat(m[2]) : 0, rest: t.replace(/translate\(\s*([-\d.]+)\s*[,\s]\s*([-\d.]+)\s*\)\s*/i, "").trim() };
+    };
+
+    const setElLocalTransform = (el, tx, ty, rest) => {
+      el.setAttribute("transform", `translate(${tx} ${ty})${rest ? " " + rest : ""}`.trim());
+    };
+
+    canvas.addEventListener("pointerdown", (e) => {
+      if (!currentSVG) return;
+      canvas.setPointerCapture(e.pointerId);
+
+      const pt = getPt(e);
+
+      if (editMode) {
+        const t = e.target;
+        const eid = t?.dataset?.eid;
+
+        if (eid) {
+          if (!e.shiftKey) selectedIds.clear();
+          if (selectedIds.has(eid)) selectedIds.delete(eid);
+          else selectedIds.add(eid);
+
+          applyAll();
+
+          draggingSel = selectedIds.size > 0;
+          selStartX = pt.x; selStartY = pt.y;
+
+          baseTransforms = new Map();
+          for (const id of selectedIds) {
+            const el = getCoreElementById(id);
+            if (!el) continue;
+            const { tx, ty, rest } = getElLocalTransform(el);
+            baseTransforms.set(id, { tx, ty, rest });
+          }
+
+          e.preventDefault();
+          return;
+        }
+        if (!e.shiftKey) { selectedIds.clear(); applyAll(); }
+        return;
+      }
+
+      draggingNeon = true;
+      canvas.classList.add("dragging");
+      sx = pt.x; sy = pt.y;
+
+      baseX = parseInt(document.getElementById("posXSlider").value || 0, 10);
+      baseY = parseInt(document.getElementById("posYSlider").value || 0, 10);
+      e.preventDefault();
+    });
+
+    canvas.addEventListener("pointermove", (e) => {
+      if (!currentSVG) return;
+
+      const pt = getPt(e);
+
+      if (editMode && draggingSel && selectedIds.size && baseTransforms) {
+        const dxPx = pt.x - selStartX;
+        const dyPx = pt.y - selStartY;
+
+        const vb = currentSVG.viewBox.baseVal;
+        const r = currentSVG.getBoundingClientRect();
+        const pxPerUnit = r.width / vb.width;
+
+        const dx = dxPx / pxPerUnit;
+        const dy = dyPx / pxPerUnit;
+
+        for (const id of selectedIds) {
+          const el = getCoreElementById(id);
+          const base = baseTransforms.get(id);
+          if (!el || !base) continue;
+          setElLocalTransform(el, base.tx + dx, base.ty + dy, base.rest);
+        }
+        applyAll();
+        e.preventDefault();
+        return;
+      }
+
+      if (!draggingNeon) return;
+
+      const dx = pt.x - sx;
+      const dy = pt.y - sy;
+      const d = pxToSliderDelta(dx, dy);
+
+      const xEl = document.getElementById("posXSlider");
+      const yEl = document.getElementById("posYSlider");
+
+      xEl.value = clamp(baseX + Math.round(d.dx), +xEl.min, +xEl.max);
+      yEl.value = clamp(baseY - Math.round(d.dy), +yEl.min, +yEl.max);
+
+      applyViewTransform();
+      e.preventDefault();
+    });
+
+    const end = (e) => {
+      draggingNeon = false;
+      draggingSel = false;
+      baseTransforms = null;
+      canvas.classList.remove("dragging");
+      try { canvas.releasePointerCapture(e.pointerId); } catch {}
+    };
+
+    canvas.addEventListener("pointerup", end);
+    canvas.addEventListener("pointercancel", end);
+  }
+
+  function drawCover(ctx, img, x, y, w, h) {
+    const iw = img.naturalWidth || img.width;
+    const ih = img.naturalHeight || img.height;
+    if (!iw || !ih) { ctx.drawImage(img, x, y, w, h); return; }
+
+    const ir = iw / ih;
+    const r = w / h;
+
+    let sx=0, sy=0, sw=iw, sh=ih;
+    if (ir > r) { sh = ih; sw = ih * r; sx = (iw - sw) / 2; sy = 0; }
+    else { sw = iw; sh = iw / r; sx = 0; sy = (ih - sh) / 2; }
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  }
+
+  function serializeSVGForExport(svgEl, widthPx, heightPx) {
+    const clone = svgEl.cloneNode(true);
+    clone.setAttribute("xmlns", clone.getAttribute("xmlns") || "http://www.w3.org/2000/svg");
+    clone.setAttribute("xmlns:xlink", clone.getAttribute("xmlns:xlink") || "http://www.w3.org/1999/xlink");
+    clone.setAttribute("width", String(Math.max(1, Math.round(widthPx))));
+    clone.setAttribute("height", String(Math.max(1, Math.round(heightPx))));
+    clone.setAttribute("preserveAspectRatio", clone.getAttribute("preserveAspectRatio") || "xMidYMid meet");
+    return new XMLSerializer().serializeToString(clone);
+  }
+
+  async function downloadPNG() {
+    try {
+      const canvasEl = document.getElementById("visualizerCanvas");
+      const r = canvasEl.getBoundingClientRect();
+
+      const dpr = Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+      const out = document.createElement("canvas");
+      out.width = Math.round(r.width * dpr);
+      out.height = Math.round(r.height * dpr);
+
+      const ctx = out.getContext("2d");
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const bg = backgrounds.find(b => b.id === currentBackground);
+      const bgUrl = (currentBackground === "custom" && customBgURL) ? customBgURL : (bg?.url || null);
+
+      if (bgUrl) {
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = bgUrl;
+        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; });
+        drawCover(ctx, img, 0, 0, r.width, r.height);
+      } else {
+        ctx.fillStyle = bg?.color || "#0f0f1a";
+        ctx.fillRect(0, 0, r.width, r.height);
+      }
+
+      if (!currentSVG) throw new Error("No hay SVG cargado.");
+
+      const previewRect = document.getElementById("svgPreview").getBoundingClientRect();
+      const x = previewRect.left - r.left;
+      const y = previewRect.top - r.top;
+
+      const svgStr = serializeSVGForExport(currentSVG, previewRect.width, previewRect.height);
+      const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+
+      const svgImg = new Image();
+      svgImg.src = url;
+      await new Promise((res, rej) => { svgImg.onload = res; svgImg.onerror = rej; });
+
+      ctx.drawImage(svgImg, x, y, previewRect.width, previewRect.height);
+      URL.revokeObjectURL(url);
+
+      const a = document.createElement("a");
+      a.download = "neon-visualizador.png";
+      a.href = out.toDataURL("image/png");
+      a.click();
+
+      showStatus("Imagen descargada ✓", "success");
+    } catch (e) {
+      console.error(e);
+      showStatus("No se pudo descargar (posible CORS del fondo).", "error");
+    }
+  }
+
+  function resetView() {
+    document.getElementById("posXSlider").value = 0;
+    document.getElementById("posYSlider").value = 0;
+    document.getElementById("scaleSlider").value = 1.0;
+    applyViewTransform();
+  }
+
+  function resetVisualizer() {
+    currentSVG = null;
+    neonLayer = null;
+    dominantColor = "#4b6cff";
+    selectedIds.clear();
+    editMode = false;
+
+    document.getElementById("svgFile").value = "";
+    document.getElementById("colorInfo").style.display = "none";
+
+    setEditModeUI(false);
+    setColorModeUI(colorMode);
+
+    document.getElementById("svgPreview").innerHTML = `
+      <div class="empty-state">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M13,9H18.5L13,3.5V9M6,2H14L20,8V20A2,2 0 0,1 18,22H6C4.89,22 4,21.1 4,20V4C4,2.89 4.89,2 6,2Z"/></svg>
+        <h3>Sube un SVG para comenzar</h3>
+        <p>Se mostrará como neón con efecto glow</p>
+      </div>
+    `;
+
+    clearCustomBackground();
+    updateBackground();
+    resetView();
+    showStatus("Reiniciado", "success");
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    initBackgroundSelector();
+    updateBackground();
+
+    const svgUploadBtn = document.getElementById("svgUpload");
+    const svgFile = document.getElementById("svgFile");
+    svgUploadBtn.addEventListener("click", () => svgFile.click());
+    svgFile.addEventListener("change", handleSVGUpload);
+
+    const bgUploadBtn = document.getElementById("bgUploadBtn");
+    const bgFile = document.getElementById("bgFile");
+    bgUploadBtn.addEventListener("click", () => bgFile.click());
+
+    bgFile.addEventListener("change", (ev) => {
+      const file = ev.target.files?.[0];
+      if (!file) return;
+
+      if (customBgURL) URL.revokeObjectURL(customBgURL);
+      customBgURL = URL.createObjectURL(file);
+
+      currentBackground = "custom";
+      document.querySelectorAll(".bg-option").forEach(o => o.classList.remove("selected"));
+      updateBackground();
+
+      ev.target.value = "";
+      showStatus("Fondo personalizado aplicado ✓", "success");
+    });
+
+    document.getElementById("bgClearBtn").addEventListener("click", () => {
+      document.getElementById("bgFile").value = "";
+      clearCustomBackground();
+      showStatus("Fondo quitado ✓", "success");
+    });
+
+    ["glowSlider","opacitySlider","blurSlider"].forEach(id => document.getElementById(id).addEventListener("input", applyAll));
+    ["posXSlider","posYSlider","scaleSlider"].forEach(id => document.getElementById(id).addEventListener("input", applyViewTransform));
+
+    document.getElementById("resetViewBtn").addEventListener("click", () => { resetView(); showStatus("Encuadre restaurado", "success"); });
+
+    const picker = document.getElementById("neonColorPicker");
+    picker.addEventListener("input", () => {
+      customNeonColor = picker.value;
+      if (colorMode === "custom") applyAll();
+    });
+
+    document.getElementById("useSvgColorBtn").addEventListener("click", () => {
+      colorMode = "svg";
+      setColorModeUI(colorMode);
+      showStatus("Usando color del SVG", "success");
+      applyAll();
+    });
+
+    document.getElementById("useCustomColorBtn").addEventListener("click", () => {
+      colorMode = "custom";
+      customNeonColor = picker.value;
+      setColorModeUI(colorMode);
+      showStatus("Usando color personalizado", "success");
+      applyAll();
+    });
+
+    document.getElementById("paintSelectionBtn").addEventListener("click", () => paintSelection(picker.value));
+    document.getElementById("applyToAllBtn").addEventListener("click", () => applyToAll(picker.value));
+
+    document.getElementById("toggleEditBtn").addEventListener("click", () => {
+      editMode = !editMode;
+      setEditModeUI(editMode);
+      if (!editMode) selectedIds.clear();
+      applyAll();
+      showStatus(editMode ? "Modo edición activado" : "Modo edición desactivado", "success");
+    });
+
+    document.getElementById("clearSelectionBtn").addEventListener("click", clearSelection);
+
+    window.addEventListener("resize", () => { if (currentSVG && neonLayer) applyAll(); });
+
+    document.getElementById("downloadBtn").addEventListener("click", downloadPNG);
+    document.getElementById("resetBtn").addEventListener("click", resetVisualizer);
+
+    setupKeyboard();
+    setupPointer();
+
+    setColorModeUI(colorMode);
+    setEditModeUI(editMode);
+
+    applyViewTransform();
+    showStatus("Listo para visualizar diseños", "success");
+  });
+</script>
+</body>
+</html>
